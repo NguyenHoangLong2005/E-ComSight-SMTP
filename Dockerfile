@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Frontend build (pre-built)
+# Frontend pre-built dist (build locally, commit to git)
 COPY frontend/dist ./frontend/dist
 
 # Backend code
