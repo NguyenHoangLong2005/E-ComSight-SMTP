@@ -73,12 +73,15 @@ def health():
 
 
 # Serve React frontend (production)
-frontend_build = Path(__file__).parent.parent / "frontend" / "dist"
+frontend_build = Path(__file__).parent / "frontend" / "dist"
+if not frontend_build.exists():
+    frontend_build = Path(__file__).parent.parent / "frontend" / "dist"
+
 if frontend_build.exists():
     app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="static")
     logger.info(f"✅ Serving frontend từ {frontend_build}")
 else:
-    logger.info("ℹ️ Frontend build chưa có — chạy React dev server riêng")
+    logger.info(f"ℹ️ Frontend build chưa có tại {frontend_build} — chạy React dev server riêng")
 
 
 if __name__ == "__main__":
