@@ -1,0 +1,56 @@
+name: E-ComSight Auto Crawler
+
+on:
+  schedule:
+    # Chạy vào 00:00 giờ Việt Nam mỗi ngày (17:00 UTC)
+    - cron: '0 17 * * *'
+  workflow_dispatch: # Cho phép bấm nút chạy bằng tay
+
+jobs:
+  crawl-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r crawler/requirements.txt
+        pip install requests pandas
+
+    - name: Install Playwright Browsers
+      run: playwright install chromium
+
+    - name: Run Crawler
+      run: |
+        cd crawler
+        python run_crawlers.py all
+        
+    - name: Push Data to API
+      env:
+        API_URL: ${{ secrets.HUGGINGFACE_API_URL }}
+      run: |
+        cat << 'EOF' > crawler/push_api.py
+        import os, requests, pandas as pd
+        api_url = os.getenv('API_URL', 'http://localhost:7860/api/reviews/upload')
+        file_path = 'data/all_reviews_raw.csv'
+        if os.path.exists(file_path):
+            print("Đang đẩy dữ liệu lên API...")
+            try:
+                with open(file_path, 'rb') as f:
+                    response = requests.post(api_url, files={'file': f})
+                print(response.status_code, response.text)
+            except Exception as e:
+                print("Lỗi khi đẩy API:", e)
+        else:
+            print("Không tìm thấy file kết quả cào.")
+        EOF
+        cd crawler
+        python push_api.py
