@@ -27,11 +27,23 @@ async def lifespan(app: FastAPI):
     create_tables()
     logger.info("✅ Database tables đã sẵn sàng")
 
+    # Seed data nếu chưa có
+    try:
+        from seed_data import seed_database
+        seed_database()
+        logger.info("✅ Data seeded successfully")
+    except Exception as e:
+        logger.error(f"❌ Lỗi seed data: {e}")
+
     # Preload NLP model in background
     import threading
     def preload():
-        from app.services.nlp_service import load_phobert_model
-        load_phobert_model()
+        try:
+            from app.services.nlp_service import load_phobert_model
+            load_phobert_model()
+        except Exception as e:
+            logger.error(f"❌ Lỗi load NLP model: {e}")
+            
     threading.Thread(target=preload, daemon=True).start()
 
     yield
@@ -72,6 +84,9 @@ def health():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
 
 
+from fastapi.responses import JSONResponse, HTMLResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 # Serve React frontend (production)
 frontend_build = Path(__file__).parent / "frontend" / "dist"
 if not frontend_build.exists():
@@ -80,6 +95,20 @@ if not frontend_build.exists():
 if frontend_build.exists():
     app.mount("/", StaticFiles(directory=str(frontend_build), html=True), name="static")
     logger.info(f"✅ Serving frontend từ {frontend_build}")
+
+    @app.exception_handler(404)
+    async def custom_404_handler(request, exc: StarletteHTTPException):
+        # API requests should still get 404 JSON
+        if request.url.path.startswith("/api/"):
+            return JSONResponse(status_code=404, content={"detail": exc.detail})
+        
+        # SPA fallback: return index.html for any other missing routes
+        index_file = frontend_build / "index.html"
+        if index_file.exists():
+            with open(index_file, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read(), status_code=200)
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+
 else:
     logger.info(f"ℹ️ Frontend build chưa có tại {frontend_build} — chạy React dev server riêng")
 
