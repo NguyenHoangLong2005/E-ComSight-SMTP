@@ -38,7 +38,11 @@ def export_csv(
 ):
     reviews = _get_reviews_for_export(db, current_user.id, days, platform)
     if not reviews:
-        raise HTTPException(404, "Không có dữ liệu để xuất")
+        return StreamingResponse(
+            io.BytesIO(b"id,comment,sentiment\n"),
+            media_type="text/csv; charset=utf-8-sig",
+            headers={"Content-Disposition": "attachment; filename=empty.csv"}
+        )
 
     content = export_service.export_csv(reviews)
     filename = f"ecomsight_reviews_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
@@ -59,7 +63,7 @@ def export_excel(
 ):
     reviews = _get_reviews_for_export(db, current_user.id, days, platform)
     if not reviews:
-        raise HTTPException(404, "Không có dữ liệu để xuất")
+        raise HTTPException(400, "Chua co du lieu de xuat")
 
     content = export_service.export_excel(reviews)
     filename = f"ecomsight_report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
@@ -80,7 +84,7 @@ def export_pdf(
 ):
     reviews = _get_reviews_for_export(db, current_user.id, days, platform)
     if not reviews:
-        raise HTTPException(404, "Không có dữ liệu để xuất")
+        raise HTTPException(400, "Chua co du lieu de xuat")
 
     content = export_service.export_pdf(reviews, shop_name=current_user.shop_name or "E-ComSight")
     filename = f"ecomsight_bao_cao_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
