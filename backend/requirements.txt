@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 sqlalchemy==2.0.30
@@ -7,7 +9,7 @@ bcrypt==3.2.2
 python-multipart==0.0.9
 pydantic[email]==2.7.1
 transformers==4.41.1
-torch==2.3.0
+torch==2.3.0+cpu
 underthesea==6.8.4
 pandas==2.2.2
 openpyxl==3.1.2
